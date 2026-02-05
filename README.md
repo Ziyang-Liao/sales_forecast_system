@@ -44,7 +44,7 @@ pip install -r requirements.txt
 ### 1. SKU级别预测
 
 ```bash
-python predict_sku.py --sku H0062 --days 14 --discount 0.2 --ppc 100 --promo-days "2026-02-10,2026-02-11"
+python predict_sku.py --sku SKU001 --days 14 --discount 0.2 --ppc 100 --promo-days "2026-02-10,2026-02-11"
 ```
 
 ### 2. 回测验证
@@ -57,7 +57,7 @@ python backtest.py --mode promo
 ### 3. Chronos-2 回测（带协变量）
 
 ```bash
-python backtest_chronos2.py --sku H0062 --test-start 2025-10-01 --test-end 2025-11-29
+python backtest_chronos2.py --sku SKU001 --test-start 2025-10-01 --test-end 2025-11-29
 ```
 
 ### 4. Web界面
