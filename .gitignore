@@ -1,0 +1,54 @@
+# 数据文件
+*.xlsx
+*.csv
+*.parquet
+data/uploads/
+data/exports/
+data/models/
+
+# 结果文件
+*_result*.csv
+*_detail*.csv
+backtest*.csv
+forecast*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# 环境
+.env
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 模型文件
+*.pkl
+*.joblib
+*.pt
+*.pth
+
+# 日志
+*.log
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# AutoGluon模型
+AutogluonModels/
