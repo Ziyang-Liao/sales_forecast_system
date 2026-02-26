@@ -46,21 +46,98 @@
 | `run_backtest_v2.py` | V2回测（时间特征+滚动预测） |
 | `run_backtest_prod.py` | **生产版回测（推荐）** |
 
-### 数据
+## 数据说明
 
-| 文件 | 说明 |
-|------|------|
-| `data/uploads/*.xlsx` | 原始数据（73300行，100个SKU） |
-| `data/daily_train.csv` | 训练集（截止2025-09-30） |
-| `data/daily_test.csv` | 测试集（60天） |
-| `data/sku_list.csv` | 筛选后的59个SKU |
+数据文件不包含在仓库中（含生产数据），由 `prepare_data.py` 从原始xlsx生成。以下说明各文件的格式和字段。
 
-### 结果
+### 原始数据 `data/uploads/*.xlsx`
 
-| 文件 | 说明 |
-|------|------|
-| `results/chronos2_backtest_v2.csv` | V2回测结果 |
-| `results/chronos2_backtest_prod.csv` | 生产版回测结果 |
+电商平台导出的SKU级别每日运营数据，每行是一个SKU在某一天的记录（同一SKU同一天可能有多条）。
+
+`prepare_data.py` 使用的字段：
+
+| 字段 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| `sku` | string | SKU编号 | SKU_001 |
+| `purchase_date` | int | 日期（YYYYMMDD格式） | 20250815 |
+| `quantity` | int | 销量（件） | 42 |
+| `ppc_fee` | float | 广告总费用（美元） | 188.64 |
+| `ppc_fee_sp` | float | SP(商品推广)广告费 | 136.86 |
+| `ppc_fee_sb` | float | SB(品牌推广)广告费 | 35.41 |
+| `ppc_fee_sbv` | float | SBV(品牌视频)广告费 | 0.05 |
+| `ppc_fee_sd` | float | SD(展示型推广)广告费 | 16.31 |
+| `ppc_sales` | float | 广告带来的销售额 | 2523.73 |
+| `ppc_impression` | int | 广告展示次数 | 35974 |
+| `ppc_clicks` | int | 广告点击次数 | 203 |
+| `ppc_ad_order_quantity` | int | 广告带来的订单数 | 57 |
+| `sessions` | int | 页面访问量 | 465 |
+| `conversion_rate` | float | 转化率 | 0.1742 |
+| `discount_rate` | float | 折扣率（0=无折扣） | 0.0967 |
+| `ppc_fee_rate` | float | 广告费率(广告费/销售额) | 0.0478 |
+| `target_costs` | float | 目标成本预算（月度） | 118.56 |
+| `actual_costs` | float | 实际成本 | 189.42 |
+
+### 处理后数据（由 `prepare_data.py` 生成）
+
+**`data/daily_train.csv`** — 训练集（截止2025-09-30）
+
+按SKU按日聚合后的数据，每行是一个SKU在某一天的汇总记录。
+
+| 字段 | 聚合方式 | 说明 |
+|------|----------|------|
+| `date` | — | 日期 |
+| `sku` | — | SKU编号 |
+| `quantity` | sum | 当日销量 |
+| `ppc_fee` | sum | 广告总费用 |
+| `ppc_fee_sp/sb/sbv/sd` | sum | 各渠道广告费 |
+| `ppc_sales` | sum | 广告销售额 |
+| `ppc_impression` | sum | 广告展示次数 |
+| `ppc_clicks` | sum | 广告点击次数 |
+| `ppc_ad_order_quantity` | sum | 广告订单数 |
+| `sessions` | sum | 访问量 |
+| `target_costs` | sum | 目标成本 |
+| `actual_costs` | sum | 实际成本 |
+| `discount_rate` | mean | 折扣率 |
+| `conversion_rate` | mean | 转化率 |
+| `ppc_fee_rate` | mean | 广告费率 |
+| `is_promo` | 计算 | 促销标记（0/1/2） |
+
+示例（脱敏）：
+
+```
+date,quantity,ppc_fee,sessions,ppc_clicks,ppc_ad_order_quantity,...,discount_rate,conversion_rate,is_promo,sku
+2025-08-01,42,188.64,465,203,57,...,0.0967,0.1742,0,SKU_001
+2025-08-02,38,156.22,412,178,48,...,0.0850,0.1553,0,SKU_001
+```
+
+**`data/daily_test.csv`** — 测试集（2025-10-01 ~ 2025-11-29，60天），字段与训练集相同。
+
+**`data/sku_list.csv`** — 筛选后的SKU列表
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `sku` | SKU编号 | SKU_001 |
+| `train_days` | 训练期总天数 | 458 |
+| `train_nonzero_days` | 训练期有销量的天数 | 448 |
+| `test_days` | 测试期天数 | 60 |
+| `daily_mean` | 训练期日均销量 | 61.9 |
+| `cv` | 变异系数(标准差/均值) | 0.72 |
+
+### 数据处理流程
+
+```
+原始xlsx（73300行，100个SKU，77列）
+    │
+    ├─ prepare_data.py
+    │   ├─ 按SKU+日期聚合（sum/mean）
+    │   ├─ 补全缺失日期（填0）
+    │   ├─ 添加促销标记（11月22日起=1，黑五=2）
+    │   └─ SKU筛选（训练期>=180天，测试期>=55天，测试期非零>=30天）
+    │
+    ├─► data/daily_train.csv  （训练集，~47000行，59个SKU）
+    ├─► data/daily_test.csv   （测试集，3540行，59个SKU）
+    └─► data/sku_list.csv     （SKU列表，59行）
+```
 
 ## 使用方法
 
