@@ -6,7 +6,8 @@ data/uploads/
 data/exports/
 data/models/
 
-# 结果文件
+# 结果文件（含生产数据，禁止提交）
+results/
 *_result*.csv
 *_detail*.csv
 backtest*.csv
@@ -45,7 +46,20 @@ Thumbs.db
 
 # 日志
 *.log
+*_log.txt
 logs/
+
+# 临时实验脚本
+run_ablation*.py
+run_baseline*.py
+run_backtest_v3*.py
+run_strict*.py
+run_two_stage.py
+run_window_exp.py
+run_yoy_exp.py
+run_mape_optimal.py
+analyze_*.py
+thinking_*.md
 
 # Jupyter
 .ipynb_checkpoints/
