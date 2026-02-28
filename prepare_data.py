@@ -11,7 +11,10 @@ import pandas as pd
 import numpy as np
 import os
 
-XLSX_PATH = '/home/ec2-user/sales_forecast_system/data/uploads/美国站分层抽样_含广告_脱敏数据_20260210_143426.xlsx'
+import glob as _glob
+# 自动查找 data/uploads/ 下的第一个xlsx文件
+_xlsx_files = _glob.glob('/home/ec2-user/sales_forecast_system/data/uploads/*.xlsx')
+XLSX_PATH = _xlsx_files[0] if _xlsx_files else '/home/ec2-user/sales_forecast_system/data/uploads/raw_data.xlsx'
 OUT_DIR = '/home/ec2-user/sales_forecast_system/data'
 TRAIN_END = '2025-09-30'
 TEST_START = '2025-10-01'

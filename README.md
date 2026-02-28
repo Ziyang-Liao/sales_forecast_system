@@ -1,12 +1,13 @@
 # 销量预测系统
 
-基于 Amazon Chronos-2 时序模型，预测电商SKU每日销量。
+电商SKU每日销量预测，支持 LightGBM 和 Amazon Chronos-2 两种算法。
 
-> **准确率 70.5%** | 59个SKU | 60天测试期 | 7天滚动预测
+> **最佳准确率 82.1% (LightGBM)** | 59个SKU | 60天测试期 | 7天滚动预测
 
 ## 目录
 
 - [模型效果](#模型效果)
+- [算法对比](#算法对比)
 - [核心思路](#核心思路)
 - [文件说明](#文件说明)
 - [数据说明](#数据说明)
@@ -19,35 +20,54 @@
 
 ## 模型效果
 
-| 指标 | 数值 |
-|------|------|
-| 整体准确率 | **70.5%** |
-| >=70%准确率占比 | 64.3% |
-| SKU数量 | 59个 |
-| 测试期 | 60天 (2025-10-01 ~ 2025-11-29) |
+| 指标 | LightGBM | Chronos-2 |
+|------|----------|-----------|
+| 整体准确率 | **82.1%** | 70.5% |
+| >=70%准确率占比 | **82.5%** | 64.3% |
+| SKU数量 | 59个 | 59个 |
+| 测试期 | 60天 | 60天 |
+| 耗时 | ~2分钟(CPU) | 较长(GPU) |
 
-## 核心思路
+## 算法对比
 
-### 协变量设计
+### LightGBM（推荐）
 
-**未来协变量 (future_df)** — 运营可提前规划/计算的字段：
+每个SKU独立训练一个 LightGBM 回归模型，利用 lag 特征 + 滚动统计量 + 协变量进行预测。
+
+**特征设计：**
+- 协变量：`is_promo`, `discount_rate`, `ppc_fee`, `day_of_week`, `is_weekend`, `month`, `qty_yoy`, `sessions`, `ppc_clicks`, `ppc_ad_order_quantity`, `conversion_rate`
+- Lag 特征：`lag_1`, `lag_7`, `lag_14`, `lag_28`
+- 滚动统计：`roll_mean_7`, `roll_mean_14`, `roll_mean_28`, `roll_std_7`
+
+**优势：**
+- lag 特征直接捕捉近期趋势，对销量预测非常关键
+- 树模型天然擅长处理表格型特征（促销、折扣、广告费等）
+- 每个SKU独立模型，完全个性化
+- 纯CPU运行，速度快
+
+### Chronos-2
+
+基于 Amazon Chronos-2 时序基础模型，通过协变量设计（未来协变量 + 历史协变量）进行预测。
+
+**协变量设计：**
+
+未来协变量 (future_df) — 运营可提前规划/计算的字段：
 - `is_promo` — 促销标记（运营提前排期）
 - `discount_rate` — 折扣率（运营提前设定）
 - `ppc_fee` — 广告总预算（运营提前规划）
 - `day_of_week`, `is_weekend`, `month` — 时间特征（日历计算）
 - `qty_yoy` — 去年同期销量（历史数据计算）
 
-**历史协变量 (context)** — 用户行为产生，仅供模型学习：
+历史协变量 (context) — 用户行为产生，仅供模型学习：
 - `quantity` — 销量（目标变量）
 - `sessions` — 访问量（用户浏览行为）
 - `ppc_clicks` — 广告点击数（用户点击行为）
 - `ppc_ad_order_quantity` — 广告订单数（用户购买行为）
 - `conversion_rate` — 转化率（用户购买决策）
-- 以上未来协变量在历史期也包含在context中
 
-### 关键优化
+### 共同优化策略
 
-1. **滚动预测**：每7天更新context，用实际值滚动更新，减少长期漂移
+1. **滚动预测**：每7天更新历史数据，用实际值滚动更新，减少长期漂移
 2. **时间特征**：星期几、是否周末、月份、去年同期销量
 3. **无硬编码**：所有参数自动适应，可泛化到新数据
 
@@ -58,8 +78,9 @@
 | 文件 | 用途 |
 |------|------|
 | `prepare_data.py` | 数据预处理：xlsx → train/test CSV |
-| `run_backtest_v2.py` | V2回测（时间特征+滚动预测） |
-| `run_backtest_prod.py` | **生产版回测（推荐）** |
+| `run_backtest_lgb.py` | **LightGBM 回测（推荐）** |
+| `run_backtest_prod.py` | Chronos-2 生产版回测 |
+| `run_backtest_v2.py` | Chronos-2 V2回测 |
 
 ## 数据说明
 
@@ -160,7 +181,10 @@ date,quantity,ppc_fee,sessions,ppc_clicks,ppc_ad_order_quantity,...,discount_rat
 # 1. 数据预处理
 python3.11 prepare_data.py
 
-# 2. 运行回测（生产版）
+# 2. 运行 LightGBM 回测（推荐）
+python3.11 run_backtest_lgb.py
+
+# 3. 运行 Chronos-2 回测（需GPU）
 python3.11 run_backtest_prod.py
 ```
 
@@ -189,34 +213,32 @@ python3.11 run_backtest_prod.py
 准确率 = max(0, 1 - |预测值 - 实际值| / 实际值) × 100%
 ```
 
-## 准确率分布
+## 准确率分布（LightGBM）
 
 | 准确率区间 | 占比 |
 |-----------|------|
-| 90% ~ 100% | 25.5% |
-| 80% ~ 90% | 21.9% |
-| 70% ~ 80% | 16.7% |
-| 60% ~ 70% | 11.2% |
-| < 60% | 24.6% |
+| >=70% | 82.5% |
+| <1% | 3.3% |
 
 ## 环境要求
 
 - Python 3.11
-- chronos-forecasting >= 1.5
-- PyTorch + CUDA
+- lightgbm
 - pandas, numpy, openpyxl
+- （Chronos-2 额外需要）chronos-forecasting >= 1.5, PyTorch + CUDA
 
 ## 版本历史
 
-| 版本 | 准确率 | 改进 |
-|------|--------|------|
-| V1 基线 | 66.7% | 3协变量，一次预测60天 |
-| V2 | 70.5% | +时间特征，+滚动预测 |
-| **生产版** | **70.5%** | 无硬编码，可泛化 |
+| 版本 | 算法 | 准确率 | 改进 |
+|------|------|--------|------|
+| V1 基线 | Chronos-2 | 66.7% | 3协变量，一次预测60天 |
+| V2 | Chronos-2 | 70.5% | +时间特征，+滚动预测 |
+| 生产版 | Chronos-2 | 70.5% | 无硬编码，可泛化 |
+| **LightGBM** | **LightGBM** | **82.1%** | lag特征+滚动统计+独立模型 |
 
 ## 广告数据消融实验
 
-在新数据（含广告分渠道）上测试了8组协变量组合，结论：
+在 Chronos-2 上测试了8组协变量组合，结论：
 
 | 实验 | 准确率 | 说明 |
 |------|--------|------|
@@ -227,11 +249,7 @@ python3.11 run_backtest_prod.py
 | V3: 全量广告字段 | 70.1% | 12个未来+8个历史，略降 |
 | E5: 精简版 | 69.9% | 去掉discount_rate和conversion_rate，下降 |
 
-**结论**：当前 7+4 协变量配置已是最优，广告分渠道数据对 Chronos-2 无增益。
-
-- 广告分渠道(sp/sb/sbv/sd)与总ppc_fee线性冗余
-- ppc_sales/ppc_impression与sessions/ppc_clicks高度相关
-- 加入更多协变量反而引入噪声，对高广告投入SKU准确率下降明显
+**结论**：Chronos-2 的 7+4 协变量配置已是最优，广告分渠道数据无增益。LightGBM 通过 lag 特征大幅超越。
 
 ## License
 
