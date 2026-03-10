@@ -94,11 +94,7 @@ def main():
                 'is_weekend': current_train['is_weekend'].values.astype(float),
                 'month': current_train['month'].values.astype(float),
                 'qty_yoy': current_train['qty_yoy'].values.astype(float),
-                # 历史效果数据（仅历史可用）
-                'sessions': current_train['sessions'].values.astype(float),
-                'ppc_clicks': current_train['ppc_clicks'].values.astype(float),
-                'ppc_ad_order_quantity': current_train['ppc_ad_order_quantity'].values.astype(float),
-                'conversion_rate': current_train['conversion_rate'].values.astype(float),
+                # 历史效果数据（仅历史可用，已移除避免滚动回填时数据泄露）
             })
 
             # 未来数据：只含可规划字段
@@ -127,15 +123,10 @@ def main():
 
             all_preds.extend(preds)
 
-            # 滚动更新：加入实际值
+            # 滚动更新：用预测值回填（不使用真实值）
             for i in range(pred_len):
                 row = batch.iloc[i:i+1].copy()
-                row['quantity'] = test.iloc[start + i]['quantity']
-                # 生产环境：这里会用实际观测值更新
-                row['sessions'] = test.iloc[start + i]['sessions']
-                row['ppc_clicks'] = test.iloc[start + i]['ppc_clicks']
-                row['ppc_ad_order_quantity'] = test.iloc[start + i]['ppc_ad_order_quantity']
-                row['conversion_rate'] = test.iloc[start + i]['conversion_rate']
+                row['quantity'] = all_preds[start + i]
                 current_train = pd.concat([current_train, row], ignore_index=True)
 
         # 记录结果

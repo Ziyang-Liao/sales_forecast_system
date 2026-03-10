@@ -13,7 +13,6 @@ FORECAST_DAYS = 60  # 预测天数
 FEATURES = [
     'is_promo', 'discount_rate', 'ppc_fee',
     'day_of_week', 'is_weekend', 'month', 'qty_yoy',
-    'sessions', 'ppc_clicks', 'ppc_ad_order_quantity', 'conversion_rate',
     # lag features
     'lag_1', 'lag_7', 'lag_14', 'lag_28',
     'roll_mean_7', 'roll_mean_14', 'roll_mean_28',
@@ -134,14 +133,9 @@ def main():
                     temp.iloc[j, temp.columns.get_loc('roll_std_7')] = temp.iloc[s7:j]['quantity'].std()
 
             # 滚动更新：用预测值回填（不使用真实值，模拟真实生产场景）
-            behavior_cols = ['sessions', 'ppc_clicks', 'ppc_ad_order_quantity', 'conversion_rate']
             for i in range(len(batch)):
                 row = batch.iloc[i:i+1].copy()
-                # quantity 用模型预测值
                 row['quantity'] = all_preds[start + i]
-                # 用户行为类字段：用最近7天均值估算
-                for col in behavior_cols:
-                    row[col] = current_train[col].iloc[-7:].mean()
                 current_train = pd.concat([current_train, row], ignore_index=True)
 
         actuals = test['quantity'].values.astype(float)

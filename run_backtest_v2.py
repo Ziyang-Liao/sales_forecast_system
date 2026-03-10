@@ -90,10 +90,6 @@ def main():
                 'is_promo': current_train['is_promo'].values.astype(float),
                 'discount_rate': current_train['discount_rate'].values.astype(float),
                 'ppc_fee': current_train['ppc_fee'].values.astype(float),
-                'sessions': current_train['sessions'].values.astype(float),
-                'ppc_clicks': current_train['ppc_clicks'].values.astype(float),
-                'ppc_ad_order_quantity': current_train['ppc_ad_order_quantity'].values.astype(float),
-                'conversion_rate': current_train['conversion_rate'].values.astype(float),
                 'day_of_week': current_train['day_of_week'].values.astype(float),
                 'is_weekend': current_train['is_weekend'].values.astype(float),
                 'month': current_train['month'].values.astype(float),
@@ -126,10 +122,10 @@ def main():
 
             all_preds.extend(preds)
 
-            # 滚动更新：将实际值加入训练集
+            # 滚动更新：用预测值回填（不使用真实值）
             for i in range(pred_len):
                 row = batch.iloc[i:i+1].copy()
-                row['quantity'] = test.iloc[start + i]['quantity']
+                row['quantity'] = all_preds[start + i]
                 current_train = pd.concat([current_train, row], ignore_index=True)
 
         # 记录结果

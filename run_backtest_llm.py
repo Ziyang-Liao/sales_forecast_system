@@ -3,8 +3,8 @@
 
 思路：
   - 给大模型提供：目标SKU自身历史 + 同品类成熟SKU同期数据 + 未来协变量 + 自动生成的运营备注
-  - 7天滚动预测，每轮用实际值更新上下文
-  - 协变量：广告预算、促销、折扣率、节假日、sessions、排名等
+  - 7天滚动预测，history_end固定不推进，避免测试期数据泄露
+  - 协变量：广告预算、促销、折扣率、节假日等（不含未来不可知的用户行为数据）
   - 额外信息：去年同期品类销量（季节性参考）、自动生成的运营备注（增长趋势、广告变化等）
 
 使用方法：
@@ -368,7 +368,7 @@ def main():
                 preds = [0] * len(batch_dates)
 
             all_preds.extend(preds)
-            history_end = batch_dates[-1]
+            # 不推进 history_end，避免下一轮看到测试期真实数据
 
             actuals = test_data.iloc[start:end]['quantity'].values
             batch_accs = [calc_acc(preds[i], actuals[i]) for i in range(len(preds))]

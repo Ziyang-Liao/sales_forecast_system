@@ -2,7 +2,7 @@
 
 电商SKU每日销量预测，支持 LightGBM、Amazon Chronos-2 和 LLM（Claude）三种算法。
 
-> **成熟SKU最佳准确率 73.6% (LightGBM)** | **冷启动SKU 64.5% (LLM)** | 60天测试期 | 7天滚动预测（预测值回填）
+> **成熟SKU最佳准确率 50.9% (LightGBM)** | **冷启动SKU 64.5% (LLM)** | 60天测试期 | 7天滚动预测（预测值回填）
 
 ## 目录
 
@@ -25,11 +25,13 @@
 
 | 指标 | LightGBM | Chronos-2 |
 |------|----------|-----------|
-| 整体准确率 | **73.6%** | 70.5% |
-| >=70%准确率占比 | **71.8%** | 64.3% |
+| 整体准确率 | **50.9%** | 待重测 |
+| >=70%准确率占比 | **41.1%** | 待重测 |
 | SKU数量 | 59个 | 59个 |
 | 测试期 | 60天 | 60天 |
 | 耗时 | ~2分钟(CPU) | 较长(GPU) |
+
+> 注：已消除数据泄露（移除未来不可知的用户行为特征：sessions、ppc_clicks、ppc_ad_order_quantity、conversion_rate），滚动回填使用预测值而非真实值。
 
 ### 冷启动SKU（训练期<180天，LLM方案）
 
@@ -106,7 +108,7 @@
 每个SKU独立训练一个 LightGBM 回归模型，利用 lag 特征 + 滚动统计量 + 协变量进行预测。
 
 **特征设计：**
-- 协变量：`is_promo`, `discount_rate`, `ppc_fee`, `day_of_week`, `is_weekend`, `month`, `qty_yoy`, `sessions`, `ppc_clicks`, `ppc_ad_order_quantity`, `conversion_rate`
+- 协变量：`is_promo`, `discount_rate`, `ppc_fee`, `day_of_week`, `is_weekend`, `month`, `qty_yoy`
 - Lag 特征：`lag_1`, `lag_7`, `lag_14`, `lag_28`
 - 滚动统计：`roll_mean_7`, `roll_mean_14`, `roll_mean_28`, `roll_std_7`
 
@@ -129,12 +131,10 @@
 - `day_of_week`, `is_weekend`, `month` — 时间特征（日历计算）
 - `qty_yoy` — 去年同期销量（历史数据计算）
 
-历史协变量 (context) — 用户行为产生，仅供模型学习：
+历史协变量 (context) — 仅目标变量：
 - `quantity` — 销量（目标变量）
-- `sessions` — 访问量（用户浏览行为）
-- `ppc_clicks` — 广告点击数（用户点击行为）
-- `ppc_ad_order_quantity` — 广告订单数（用户购买行为）
-- `conversion_rate` — 转化率（用户购买决策）
+
+> 注：已移除 sessions、ppc_clicks、ppc_ad_order_quantity、conversion_rate 等用户行为特征，避免滚动回填时数据泄露。
 
 ### 共同优化策略
 
@@ -295,8 +295,8 @@ python3.11 run_backtest_prod.py
 
 | 准确率区间 | 占比 |
 |-----------|------|
-| >=70% | 71.8% |
-| <1% | 8.6% |
+| >=70% | 41.1% |
+| <1% | 23.8% |
 
 ## 环境要求
 
@@ -310,9 +310,9 @@ python3.11 run_backtest_prod.py
 | 版本 | 算法 | 准确率 | 改进 |
 |------|------|--------|------|
 | V1 基线 | Chronos-2 | 66.7% | 3协变量，一次预测60天 |
-| V2 | Chronos-2 | 70.5% | +时间特征，+滚动预测 |
-| 生产版 | Chronos-2 | 70.5% | 无硬编码，可泛化 |
-| **LightGBM** | **LightGBM** | **73.6%** | lag特征+滚动统计+独立模型，预测值回填 |
+| V2 | Chronos-2 | 待重测 | +时间特征，+滚动预测，已移除泄露特征 |
+| 生产版 | Chronos-2 | 待重测 | 无硬编码，可泛化，已移除泄露特征 |
+| **LightGBM** | **LightGBM** | **50.9%** | lag特征+滚动统计+独立模型，消除数据泄露，预测值回填 |
 | **LLM冷启动** | **Claude** | **64.5%** | 同品类借鉴+运营备注+去年同期（冷启动SKU） |
 
 ## 广告数据消融实验
