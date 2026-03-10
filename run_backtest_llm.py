@@ -156,21 +156,16 @@ def generate_notes(daily, sku, peers, history_end):
         peer_means.sort(key=lambda x: x[1], reverse=True)
         notes.append(f'同品类成熟SKU近14天日均销量：{", ".join(f"{p}日均{m:.0f}" for p, m in peer_means)}。')
 
-    if len(s) >= 7:
-        cvr = s.tail(7)['conversion_rate'].mean()
-        if cvr > 0:
-            notes.append(f'最近7天平均转化率{cvr:.2%}。')
-
     return '\n'.join(notes)
 
 
 def format_sku_history(daily, sku, start_date, end_date, max_days=30):
-    """格式化SKU历史数据为CSV文本"""
+    """格式化SKU历史数据为CSV文本（不含未来不可知的用户行为特征）"""
     s = daily[(daily['sku'] == sku) & (daily['date'] >= start_date) & (daily['date'] <= end_date)].tail(max_days)
     if len(s) == 0:
         return "无数据"
 
-    lines = ["日期,销量,sessions,广告费,广告点击,广告订单,折扣率,转化率,大类排名,小类排名"]
+    lines = ["日期,销量,广告费,折扣率,大类排名,小类排名"]
     for _, r in s.iterrows():
         event = US_EVENTS.get(r['date'].strftime('%Y-%m-%d'), '')
         ev = f" [{event}]" if event else ""
@@ -178,9 +173,8 @@ def format_sku_history(daily, sku, start_date, end_date, max_days=30):
         small_r = int(r['小类排名']) if pd.notna(r.get('小类排名')) else 'N/A'
         lines.append(
             f"{r['date'].strftime('%Y-%m-%d')},{int(r['quantity'])},"
-            f"{int(r['sessions'])},{r['ppc_fee']:.0f},{int(r['ppc_clicks'])},"
-            f"{int(r['ppc_ad_order_quantity'])},{r['discount_rate']:.4f},"
-            f"{r['conversion_rate']:.4f},{big_r},{small_r}{ev}")
+            f"{r['ppc_fee']:.0f},{r['discount_rate']:.4f},"
+            f"{big_r},{small_r}{ev}")
     return "\n".join(lines)
 
 
@@ -235,12 +229,10 @@ def build_prompt(daily, target_sku, target_info, pred_dates, history_end):
     for p in top_peers:
         p_title = daily[daily['sku'] == p]['title'].iloc[0]
         p_hist = format_sku_history(daily, p, hist_start, history_end, 30)
-        p_future = format_sku_history(daily, p, pred_dates[0], pred_dates[-1])
         p_notes = generate_notes(daily, p, [], history_end)
         peer_sections.append(
             f"### {p} ({str(p_title)[:60]})\n备注: {p_notes}\n\n"
-            f"历史数据（截至{history_end.strftime('%Y-%m-%d')}）:\n{p_hist}\n\n"
-            f"预测期实际数据（品类趋势参考）:\n{p_future}")
+            f"历史数据（截至{history_end.strftime('%Y-%m-%d')}）:\n{p_hist}")
 
     yoy_text = format_yoy_data(daily, cat, pred_dates, peers)
     future_cov = format_future_covariates(daily, target_sku, pred_dates)
@@ -258,7 +250,7 @@ def build_prompt(daily, target_sku, target_info, pred_dates, history_end):
 ## 目标SKU历史数据
 {target_hist}
 
-## 同品类成熟SKU数据（用于借鉴品类趋势和季节性模式）
+## 同品类成熟SKU数据（用于借鉴品类历史趋势和季节性模式）
 {chr(10).join(peer_sections)}
 
 ## 去年同期品类销量（季节性参考）
@@ -269,7 +261,7 @@ def build_prompt(daily, target_sku, target_info, pred_dates, history_end):
 
 ## 预测要求
 1. 综合考虑：目标SKU自身趋势、同品类SKU的销量变化模式、广告预算变化、折扣率、节假日/大促影响
-2. 注意品类季节性：同品类SKU在预测期的销量变化反映了品类整体趋势
+2. 注意品类季节性：同品类SKU的历史销量变化反映了品类整体趋势
 3. 参考去年同期数据判断季节性涨跌幅度，但注意今年品类可能整体增长或下降
 4. 注意大促效应：Prime Day、Black Friday等大促会导致销量激增，参考同品类SKU在大促期间的销量倍率
 5. 新SKU的销量规模可能与成熟SKU不同，但变化趋势（涨跌比例）应该相似
