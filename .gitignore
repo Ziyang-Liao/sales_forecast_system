@@ -66,3 +66,7 @@ thinking_*.md
 
 # AutoGluon模型
 AutogluonModels/
+
+# 临时脚本
+prepare_data_v2.py
+llm_backtest_log.txt
