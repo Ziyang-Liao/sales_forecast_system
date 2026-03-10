@@ -36,7 +36,9 @@ TRAIN_END = '2025-09-30'
 TEST_START = '2025-10-01'
 TEST_END = '2025-11-29'
 
-# 成熟SKU阈值（训练期非零天数）
+# 冷启动阈值（训练期非零天数低于此值视为冷启动，默认90天）
+COLD_START_THRESHOLD = int(os.environ.get('COLD_START_DAYS', '90'))
+# 成熟SKU阈值（同品类参考SKU需达到此天数）
 MATURE_THRESHOLD = 180
 
 # 美国节假日/大促（测试期内）
@@ -87,7 +89,7 @@ def get_cold_start_skus(daily):
         train_nz = (train['quantity'] > 0).sum()
         test_nz = (test['quantity'] > 0).sum()
 
-        if train_nz >= MATURE_THRESHOLD or test_nz < 10:
+        if train_nz >= COLD_START_THRESHOLD or test_nz < 10:
             continue
 
         peers = daily[(daily['品类'] == cat) & (daily['sku'] != sku)]['sku'].unique()

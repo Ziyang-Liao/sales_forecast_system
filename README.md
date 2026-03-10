@@ -259,6 +259,7 @@ python3.11 run_backtest_lgb.py
 # 3. 运行 LLM 冷启动回测（需AWS Bedrock访问权限）
 export AWS_REGION=us-east-1
 export LLM_MODEL_ID=us.anthropic.claude-opus-4-6-v1
+export COLD_START_DAYS=90   # 冷启动阈值，默认90天，可调整
 python3.11 run_backtest_llm.py
 
 # 4. 运行 Chronos-2 回测（需GPU）
