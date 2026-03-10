@@ -8,6 +8,7 @@ import time
 DATA_DIR = '/home/ec2-user/sales_forecast_system/data'
 OUT_DIR = '/home/ec2-user/sales_forecast_system/results'
 ROLL_DAYS = 7
+FORECAST_DAYS = 60  # 预测天数
 
 FEATURES = [
     'is_promo', 'discount_rate', 'ppc_fee',
@@ -81,6 +82,7 @@ def main():
         test = test_all[test_all['sku'] == sku].sort_values('date').copy()
         if len(train) == 0 or len(test) == 0:
             continue
+        test = test.iloc[:FORECAST_DAYS].copy()  # 只取前N天
 
         train['qty_yoy'] = add_yoy(train, train['date'])
         test['qty_yoy'] = add_yoy(train, test['date'])
@@ -131,14 +133,15 @@ def main():
                     s7 = max(0, j - 7)
                     temp.iloc[j, temp.columns.get_loc('roll_std_7')] = temp.iloc[s7:j]['quantity'].std()
 
-            # 滚动更新：用实际值
+            # 滚动更新：用预测值回填（不使用真实值，模拟真实生产场景）
+            behavior_cols = ['sessions', 'ppc_clicks', 'ppc_ad_order_quantity', 'conversion_rate']
             for i in range(len(batch)):
                 row = batch.iloc[i:i+1].copy()
-                row['quantity'] = test.iloc[start + i]['quantity']
-                row['sessions'] = test.iloc[start + i]['sessions']
-                row['ppc_clicks'] = test.iloc[start + i]['ppc_clicks']
-                row['ppc_ad_order_quantity'] = test.iloc[start + i]['ppc_ad_order_quantity']
-                row['conversion_rate'] = test.iloc[start + i]['conversion_rate']
+                # quantity 用模型预测值
+                row['quantity'] = all_preds[start + i]
+                # 用户行为类字段：用最近7天均值估算
+                for col in behavior_cols:
+                    row[col] = current_train[col].iloc[-7:].mean()
                 current_train = pd.concat([current_train, row], ignore_index=True)
 
         actuals = test['quantity'].values.astype(float)
