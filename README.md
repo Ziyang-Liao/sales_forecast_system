@@ -1,8 +1,8 @@
 # 销量预测系统
 
-电商SKU每日销量预测，支持 LightGBM、Amazon Chronos-2 和 LLM（Claude）三种算法。
+电商SKU每日销量预测，支持 LightGBM、Amazon Chronos-2、两阶段Chronos-2 和 LLM（Claude）四种算法。
 
-> **成熟SKU最佳准确率 66.6% (Chronos-2)** | **冷启动SKU 49.4% (LLM)** | 60天测试期 | 7天滚动预测（预测值回填）
+> **成熟SKU最佳准确率 69.2% (两阶段Chronos-2)** | **冷启动SKU 49.4% (LLM)** | 60天测试期 | 7天滚动预测（预测值回填）
 
 ## 目录
 
@@ -23,11 +23,11 @@
 
 ### 成熟SKU（训练期≥180天）
 
-| 指标 | LightGBM | Chronos-2 |
-|------|----------|-----------|
-| 整体准确率 | 50.9% | **66.6%** |
-| >=70%准确率占比 | 41.1% | **56.7%** |
-| SKU数量 | 59个 | 59个 |
+| 指标 | LightGBM | Chronos-2 | 两阶段Chronos-2 |
+|------|----------|-----------|----------------|
+| 整体准确率 | 50.9% | 66.6% | **69.2%** |
+| >=70%准确率占比 | 41.1% | 56.7% | **59.6%** |
+| SKU数量 | 59个 | 59个 | 59个 |
 | 测试期 | 60天 | 60天 |
 | 耗时 | ~2分钟(CPU) | ~35秒(GPU) |
 
@@ -136,6 +136,30 @@
 
 > 注：已移除 sessions、ppc_clicks、ppc_ad_order_quantity、conversion_rate 等用户行为特征，避免滚动回填时数据泄露。
 
+### 两阶段Chronos-2（当前最优）
+
+核心思路：sessions 和 conversion_rate 虽然无法提前知道真实值，但可以先预测出来，再作为协变量辅助销量预测。
+
+```
+历史数据 → Chronos-2 → 预测未来 sessions / conversion_rate
+                              ↓
+历史数据 + 预测的 sessions/conversion_rate → Chronos-2 → 预测销量
+```
+
+**阶段1 — 预测中间指标：**
+- 目标：sessions、conversion_rate
+- 协变量：is_promo, discount_rate, ppc_fee, day_of_week, is_weekend, month
+- 预测准确率：sessions 79.1%、conversion_rate 74.6%
+
+**阶段2 — 预测销量：**
+- 协变量：基线7个 + sessions_pred + cr_pred（共9个）
+- 历史部分的 sessions_pred/cr_pred 使用真实值，未来部分使用阶段1的预测值
+
+**关键设计：**
+- 不存在数据泄露：未来的 sessions/conversion_rate 是预测值，非真实值
+- 中间指标可预测性强（79%/75%），误差传播可控
+- 相比基线 Chronos-2 提升 +2.6%（66.6% → 69.2%）
+
 ### 共同优化策略
 
 1. **滚动预测**：每7天滚动预测，用预测值（非真实值）回填历史，模拟真实生产场景；用户行为类特征（sessions、clicks等）用最近7天均值估算
@@ -151,6 +175,7 @@
 | `prepare_data.py` | 数据预处理：xlsx → train/test CSV |
 | `run_backtest_lgb.py` | **LightGBM 回测（推荐，成熟SKU）** |
 | `run_backtest_llm.py` | **LLM 冷启动回测（新SKU）** |
+| `run_backtest_chronos_2stage.py` | **两阶段Chronos-2 回测（当前最优，成熟SKU）** |
 | `run_backtest_prod.py` | Chronos-2 生产版回测 |
 | `run_backtest_v2.py` | Chronos-2 V2回测 |
 
@@ -312,6 +337,7 @@ python3.11 run_backtest_prod.py
 | V1 基线 | Chronos-2 | 66.7% | 3协变量，一次预测60天 |
 | **V2** | **Chronos-2** | **66.6%** | +时间特征，+滚动预测，消除数据泄露，预测值回填 |
 | **生产版** | **Chronos-2** | **66.6%** | 无硬编码，可泛化，消除数据泄露，预测值回填 |
+| **两阶段** | **Chronos-2** | **69.2%** | 先预测sessions/cr再辅助销量预测，sessions预测79.1%，cr预测74.6% |
 | LightGBM | LightGBM | 50.9% | lag特征+滚动统计+独立模型，消除数据泄露，预测值回填 |
 | LLM冷启动 | Claude | 49.4% | 同品类借鉴+运营备注+去年同期，消除数据泄露（冷启动SKU） |
 
