@@ -28,10 +28,10 @@
 | 整体准确率 | 50.9% | 66.6% | **69.2%** |
 | >=70%准确率占比 | 41.1% | 56.7% | **59.6%** |
 | SKU数量 | 59个 | 59个 | 59个 |
-| 测试期 | 60天 | 60天 |
-| 耗时 | ~2分钟(CPU) | ~35秒(GPU) |
+| 测试期 | 60天 | 60天 | 60天 |
+| 耗时 | ~2分钟(CPU) | ~35秒(GPU) | ~69秒(GPU) |
 
-> 注：已消除数据泄露（移除未来不可知的用户行为特征：sessions、ppc_clicks、ppc_ad_order_quantity、conversion_rate），滚动回填使用预测值而非真实值。
+> 注：已消除数据泄露（移除未来不可知的用户行为特征：sessions、ppc_clicks、ppc_ad_order_quantity、conversion_rate），滚动回填使用预测值而非真实值。两阶段方案中 sessions/conversion_rate 使用 Chronos-2 预测值（非真实值），不存在数据泄露。
 
 ### 冷启动SKU（训练期<180天，LLM方案）
 
@@ -289,6 +289,9 @@ python3.11 run_backtest_llm.py
 
 # 4. 运行 Chronos-2 回测（需GPU）
 python3.11 run_backtest_prod.py
+
+# 5. 运行两阶段 Chronos-2 回测（当前最优，需GPU）
+python3.11 run_backtest_chronos_2stage.py
 ```
 
 ## 数据预处理逻辑
@@ -318,10 +321,10 @@ python3.11 run_backtest_prod.py
 
 ## 准确率分布
 
-| 准确率区间 | Chronos-2 | LightGBM |
-|-----------|-----------|----------|
-| >=70% | 56.7% | 41.1% |
-| <1% | 7.3% | 23.8% |
+| 准确率区间 | Chronos-2 | 两阶段Chronos-2 | LightGBM |
+|-----------|-----------|----------------|----------|
+| >=70% | 56.7% | **59.6%** | 41.1% |
+| <1% | 7.3% | **5.2%** | 23.8% |
 
 ## 环境要求
 
