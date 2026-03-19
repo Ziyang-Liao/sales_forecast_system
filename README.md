@@ -103,7 +103,7 @@
 
 ## 算法对比
 
-### LightGBM（推荐）
+### LightGBM
 
 每个SKU独立训练一个 LightGBM 回归模型，利用 lag 特征 + 滚动统计量 + 协变量进行预测。
 
@@ -173,7 +173,7 @@
 | 文件 | 用途 |
 |------|------|
 | `prepare_data.py` | 数据预处理：xlsx → train/test CSV |
-| `run_backtest_lgb.py` | **LightGBM 回测（推荐，成熟SKU）** |
+| `run_backtest_lgb.py` | LightGBM 回测（成熟SKU） |
 | `run_backtest_llm.py` | **LLM 冷启动回测（新SKU）** |
 | `run_backtest_chronos_2stage.py` | **两阶段Chronos-2 回测（当前最优，成熟SKU）** |
 | `run_backtest_prod.py` | Chronos-2 生产版回测 |
@@ -278,7 +278,7 @@ date,quantity,ppc_fee,sessions,ppc_clicks,ppc_ad_order_quantity,...,discount_rat
 # 1. 数据预处理
 python3.11 prepare_data.py
 
-# 2. 运行 LightGBM 回测（推荐）
+# 2. 运行 LightGBM 回测
 python3.11 run_backtest_lgb.py
 
 # 3. 运行 LLM 冷启动回测（需AWS Bedrock访问权限）
@@ -357,7 +357,7 @@ python3.11 run_backtest_chronos_2stage.py
 | V3: 全量广告字段 | 70.1% | 12个未来+8个历史，略降 |
 | E5: 精简版 | 69.9% | 去掉discount_rate和conversion_rate，下降 |
 
-**结论**：Chronos-2 的 7+4 协变量配置已是最优，广告分渠道数据无增益。LightGBM 通过 lag 特征大幅超越。
+**结论**：Chronos-2 的 7+4 协变量配置已是最优，广告分渠道数据无增益。两阶段方案通过预测 sessions/conversion_rate 进一步提升至 69.2%。
 
 ## License
 
