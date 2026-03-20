@@ -61,6 +61,16 @@ run_mape_optimal.py
 analyze_*.py
 thinking_*.md
 
+# 临时对比脚本（结果已记录在README）
+run_backtest_chronos_2stage_30d.py
+run_backtest_chronos_2stage_sess.py
+run_backtest_calibrated.py
+run_backtest_lgb_2stage.py
+run_backtest_prod.py.bak
+run_backtest_mar_may.py
+verify_v15_stacking.py
+catboost_info/
+
 # Jupyter
 .ipynb_checkpoints/
 

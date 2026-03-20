@@ -6,14 +6,24 @@
 
 ### Added
 - 10个模型全面对比实验：Lasso/随机森林/LSTM/SVR/ARIMA/XGBoost/MLP等
-- README 新增多模型准确率排行榜
+- 两阶段中间指标消融实验：逐步加入ppc_clicks/ppc_ad_order_quantity/ppc_impression
+- 分位数预测实验：测试p30~p70不同分位数的效果
+- 多种优化方案实验：模型集成、后处理校准、残差学习、分SKU策略等
+- `run_backtest_multi_model.py` 多模型对比脚本
+- `run_backtest_extra_models.py` ARIMA/SVR/Lasso回测脚本
+- `run_backtest_lstm.py` LSTM回测脚本
+- `run_backtest_multi_indicator.py` 多指标消融实验脚本
+- `run_backtest_residual_quantile.py` 残差学习+分位数自适应实验脚本
+- README 新增多模型排行榜、消融实验、分位数实验、其他优化方案记录
 
 ### 实验结论
 - 两阶段Chronos-2(69.2%)全面领先所有传统ML和从零训练的深度学习模型
 - Lasso回归(52.7%)在传统ML中表现最好，但仍比Chronos-2低16.5%
 - LSTM(52.6%)/随机森林(52.3%)/LightGBM(50.9%)表现接近
-- ARIMA(49.2%)/XGBoost(42.0%)/MLP(32.8%)表现较差
-- 预训练时序基础模型的零样本泛化能力远超从单SKU数据训练的模型
+- sessions(79.1%)+conversion_rate(74.6%)是唯一有效的中间指标
+- ppc_clicks/ppc_ad_order_quantity/ppc_impression预测准确率仅35-40%，无增益
+- 分位数p30/p40略优于p50（+0.2%），差异极小
+- 模型集成、后处理校准、残差学习等方案均无提升
 
 ## [v3.0.0] - 2026-03-19
 
