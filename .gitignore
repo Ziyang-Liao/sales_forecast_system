@@ -71,6 +71,9 @@ run_backtest_mar_may.py
 verify_v15_stacking.py
 catboost_info/
 
+# 含真实产品信息的文档（不提交）
+docs/crawler_agent_prompt.md
+
 # Jupyter
 .ipynb_checkpoints/
 
