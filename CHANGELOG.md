@@ -2,6 +2,24 @@
 
 本项目的所有重要变更记录。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [v3.0.0] - 2026-03-19
+
+### Added
+- `run_backtest_chronos_2stage.py` 两阶段Chronos-2回测脚本（当前最优）
+- 两阶段预测方案：先用Chronos-2预测sessions/conversion_rate，再作为协变量辅助销量预测
+- 多指标消融实验：测试ppc_clicks/ppc_ad_order_quantity/ppc_impression的增益
+
+### Changed
+- 成熟SKU最佳准确率从 66.6% 提升至 **69.2%**（+2.6%）
+- >=70%准确率占比从 56.7% 提升至 **59.6%**（+2.9%）
+- README.md 更新算法对比、模型效果表格、版本历史、准确率分布等
+
+### 实验结论
+- sessions预测准确率79.1%，conversion_rate预测准确率74.6%，可预测性强
+- 仅+sessions提升+1.8%（68.4%），+sessions+cr提升+2.6%（69.2%）
+- ppc_clicks(40.1%)/ppc_ad_order_quantity(36.2%)/ppc_impression(35.8%)预测准确率低，加入后无增益
+- 30天预测(68.9%)与60天预测(69.2%)效果接近，缩短预测期无明显提升
+
 ## [v2.1.0] - 2026-02-26
 
 ### Added
