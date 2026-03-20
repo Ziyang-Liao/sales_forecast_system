@@ -9,12 +9,18 @@
 - 两阶段中间指标消融实验：逐步加入ppc_clicks/ppc_ad_order_quantity/ppc_impression
 - 分位数预测实验：测试p30~p70不同分位数的效果
 - 多种优化方案实验：模型集成、后处理校准、残差学习、分SKU策略等
+- 高级集成实验：Stacking/动态选择/多分位数截尾均值
+- `fetch_external_data.py` 外部数据采集脚本（Google Trends + 节假日 + FRED）
+- `docs/crawler_agent_prompt.md` 爬虫Agent提示词（含59个SKU公开信息）
+- `data/external/search_trends.csv` Google Trends搜索热度数据（26关键词，3952条）
+- `data/external/us_holidays.csv` 美国节假日+购物节日历（1064天，47个节假日）
 - `run_backtest_multi_model.py` 多模型对比脚本
 - `run_backtest_extra_models.py` ARIMA/SVR/Lasso回测脚本
 - `run_backtest_lstm.py` LSTM回测脚本
 - `run_backtest_multi_indicator.py` 多指标消融实验脚本
 - `run_backtest_residual_quantile.py` 残差学习+分位数自适应实验脚本
-- README 新增多模型排行榜、消融实验、分位数实验、其他优化方案记录
+- `run_backtest_advanced_ensemble.py` 高级集成实验脚本
+- README 新增多模型排行榜、消融实验、分位数实验、其他优化方案、外部数据采集进度
 
 ### 实验结论
 - 两阶段Chronos-2(69.2%)全面领先所有传统ML和从零训练的深度学习模型
