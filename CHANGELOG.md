@@ -2,6 +2,19 @@
 
 本项目的所有重要变更记录。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [v3.1.0] - 2026-03-20
+
+### Added
+- 10个模型全面对比实验：Lasso/随机森林/LSTM/SVR/ARIMA/XGBoost/MLP等
+- README 新增多模型准确率排行榜
+
+### 实验结论
+- 两阶段Chronos-2(69.2%)全面领先所有传统ML和从零训练的深度学习模型
+- Lasso回归(52.7%)在传统ML中表现最好，但仍比Chronos-2低16.5%
+- LSTM(52.6%)/随机森林(52.3%)/LightGBM(50.9%)表现接近
+- ARIMA(49.2%)/XGBoost(42.0%)/MLP(32.8%)表现较差
+- 预训练时序基础模型的零样本泛化能力远超从单SKU数据训练的模型
+
 ## [v3.0.0] - 2026-03-19
 
 ### Added
